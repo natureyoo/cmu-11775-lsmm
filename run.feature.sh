@@ -60,5 +60,9 @@ echo "Creating ASR features"
 mkdir -p asrfeat
 python scripts/create_asrfeat.py ../asrs/ 200 asrfeat || exit 1;
 
+echo "Createing SoundNet features"
+mkdir -p soundnetfeat
+python scripts/create_soundnet.py ../soundnet/ soundnetfeat || exit 1;
+
 # Great! We are done!
 echo "SUCCESSFUL COMPLETION"

@@ -22,30 +22,31 @@ def read_label(file_path, event_name):
     return label
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         print('Usage: {0} event_name feat_dir feat_dim output_file'.format(sys.argv[0]))
         print("event_name -- name of the event (P001, P002 or P003 in Homework 1)")
-        print("feat_type -- mfcc or asr or both")
+        print("feat_type -- mfcc or asr")
         print("output_file -- path to save the svm model")
         exit(1)
 
     event_name = sys.argv[1]
     feat_type = sys.argv[2]
-    output_file = sys.argv[3]
+    feat_dim = sys.argv[3]
+    output_file = sys.argv[4]
 
     if feat_type == 'mfcc':
-        X = numpy.loadtxt(os.path.join('kmeans', 'result_100.csv'), delimiter=',')
+        X = numpy.loadtxt(os.path.join('kmeans', 'result_{}.csv'.format(feat_dim)), delimiter=',')
     elif feat_type == 'asr':
-        X = numpy.loadtxt(os.path.join('asrfeat', 'result.csv'), delimiter=',')
-    else:
-        X1 = numpy.loadtxt(os.path.join('kmeans', 'result.csv'), delimiter=',')
-        X2 = numpy.loadtxt(os.path.join('asrfeat', 'result.csv'), delimiter=',')
-        X = numpy.concatenate((X1, X2), axis=1)
-        del X1, X2
+        X = numpy.loadtxt(os.path.join('asrfeat', 'result_{}.csv'.format(feat_dim)), delimiter=',')
+    else:    # soundnet feature
+        # X = numpy.loadtxt(os.path.join('soundnetfeat', 'result_{}.csv'.format(feat_type.split('_')[1])), delimiter=',')
+        X = numpy.loadtxt(os.path.join('soundnetfeat', 'result_08.csv'), delimiter=',')
+#        for c in ['04', '06', '08']:
+#            X_cur = numpy.loadtxt(os.path.join('soundnetfeat', 'result_{}.csv'.format(c)), delimiter=',')
+#            X = numpy.concatenate((X, X_cur), axis=1)
+#
     train_y = read_label('../all_trn.lst', event_name)
     train_X = X[:len(train_y)]
-    val_y = read_label('../all_val.lst', event_name)
-    val_X = X[len(train_y):len(train_y) + len(val_y)]
 
     ros = RandomOverSampler(random_state=42)
     train_X_res, train_y_res = ros.fit_resample(train_X, train_y)
@@ -54,20 +55,13 @@ if __name__ == '__main__':
     if feat_type == 'mfcc':    
         chi_feature = AdditiveChi2Sampler(sample_steps=2)
         train_X_res = chi_feature.fit_transform(train_X_res)
-        val_X = chi_feature.fit_transform(val_X)
 
     clf = SVC(probability=True)
     clf.fit(train_X_res, train_y_res)
 
-    val_predict = clf.predict(val_X)
-    val_conf = clf.decision_function(val_X)
-
-    numpy.savetxt('{}/{}_{}.lst'.format(output_file.split('/')[0], event_name, feat_type), val_conf, fmt='%2.4f')
-    # val_accuracy = float((val_predict == val_y).sum()) / len(val_y)
-    # val_precision = float(((val_predict == 1) & (val_y == 1)).sum()) / (val_predict == 1).sum()
-    # val_recall = float(((val_predict == 1) & (val_y == 1)).sum()) / (val_y == 1).sum()
-    # print('Accuracy: {:.2f} Precision: {:.2f} Recall: {:.2f}'.format(val_accuracy, val_precision, val_recall))
-    # print('MAP: {:.2f}'.format(average_precision_score(val_y, val_prob)))
+    output_dir = output_file.split('/')[0]
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     pickle.dump(clf, open(output_file, 'wb'))
     print('SVM trained successfully for event {}!'.format(event_name))

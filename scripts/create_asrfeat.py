@@ -83,6 +83,6 @@ if __name__ == '__main__':
         if video in asr_list:
             video_feat[idx] = asr_video_mtx[video_idx[video]]
 
-    numpy.savetxt(os.path.join(output_dir, 'result.csv'), video_feat, delimiter=',')
+    numpy.savetxt(os.path.join(output_dir, 'result_{}.csv'.format(feat_dim)), video_feat, delimiter=',')
 
     print('ASR features generated successfully!')
